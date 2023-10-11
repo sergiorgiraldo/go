@@ -15,10 +15,3 @@ else
   echo "Invalid parameter passed"
   exit 1
 fi
-
-
-
-
-
-
-
