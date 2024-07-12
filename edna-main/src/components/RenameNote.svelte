@@ -1,0 +1,92 @@
+<script>
+  import { getLatestNoteNames, sanitizeNoteName } from "../notes";
+  import { focus } from "../actions";
+
+  /** @type { {
+    onclose: () => void,
+    oldName: string,
+    rename: (newName: string) => void,
+}}*/
+  let { oldName, onclose, rename } = $props();
+
+  let newName = $state(oldName);
+
+  let sanitizedNewName = $derived.by(() => {
+    return sanitizeNoteName(newName);
+  });
+
+  let canRename = $derived.by(() => {
+    let name = sanitizedNewName;
+    if (name === "" || name === oldName) {
+      return false;
+    }
+    let noteNames = getLatestNoteNames();
+    return !noteNames.includes(name);
+  });
+
+  let renameError = $derived.by(() => {
+    let name = sanitizedNewName;
+    if (name === "") {
+      return "name cannot be empty";
+    }
+    let noteNames = getLatestNoteNames();
+    if (noteNames.includes(name)) {
+      return `note <span class="font-bold">${name}</span> already exists`;
+    }
+    return "";
+  });
+
+  /**
+   * @param {KeyboardEvent} ev
+   */
+  function onkeydown(ev) {
+    let key = ev.key;
+
+    if (canRename && key === "Enter") {
+      emitRename();
+      ev.preventDefault();
+      ev.stopPropagation();
+      return;
+    }
+  }
+
+  function emitRename() {
+    rename(sanitizedNewName);
+  }
+</script>
+
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+  role="dialog"
+  {onkeydown}
+  class="selector z-20 absolute center-x-with-translate top-[4rem] flex flex-col max-w-full p-3"
+>
+  <div class="text-lg font-semibold">
+    Rename <span class="font-bold">{oldName}</span> to:
+  </div>
+  <input
+    bind:value={newName}
+    use:focus
+    class="py-1 px-2 bg-white mt-2 rounded-sm w-[80ch]"
+  />
+  <div class=" text-sm mt-2">
+    {#if canRename}
+      New name: <span class="font-bold">{sanitizedNewName}</span>
+    {:else}
+      <span class="text-red-500">{@html renameError}</span>
+    {/if}
+  </div>
+  <div class="flex justify-end mt-2">
+    <button
+      onclick={onclose}
+      class="mr-4 px-4 py-1 border border-black hover:bg-gray-100"
+      >Cancel</button
+    >
+    <button
+      onclick={() => emitRename()}
+      disabled={!canRename}
+      class="px-4 py-1 border border-black hover:bg-gray-50 disabled:text-gray-400 disabled:border-gray-400 disabled:bg-white default:bg-slate-700"
+      >Rename</button
+    >
+  </div>
+</div>
